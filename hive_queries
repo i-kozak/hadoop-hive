@@ -1,0 +1,76 @@
+SHOW DATABASES;
+
+CREATE DATABASE IF NOT EXISTS flight_cancellations;
+
+CREATE TABLE IF NOT EXISTS flight_cancellations.airlines (
+IATA_CODE CHAR(2),
+AIRLINE CHAR(255))
+COMMENT 'Airlines Table'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+TBLPROPERTIES("skip.header.line.count"="1");
+	
+LOAD DATA INPATH '/flight_delays/input/hive/airlines.csv' INTO TABLE flight_cancellations.airlines;
+
+CREATE TABLE IF NOT EXISTS flight_cancellations.flights (
+YEAR SMALLINT,
+MONTH TINYINT,
+DAY TINYINT,
+DAY_OF_WEEK TINYINT,
+AIRLINE CHAR(2),
+FLIGHT_NUMBER INT,
+TAIL_NUMBER CHAR(6),
+ORIGIN_AIRPORT CHAR(3),
+DESTINATION_AIRPORT CHAR(3),
+SCHEDULED_DEPARTURE CHAR(4),
+DEPARTURE_TIME CHAR(4),
+DEPARTURE_DELAY SMALLINT,
+TAXI_OUT SMALLINT,
+WHEELS_OFF CHAR(4),
+SCHEDULED_TIME SMALLINT,
+ELAPSED_TIME SMALLINT,
+AIR_TIME SMALLINT,
+DISTANCE SMALLINT,
+WHEELS_ON CHAR(4),
+TAXI_IN SMALLINT,
+SCHEDULED_ARRIVAL CHAR(4),
+ARRIVAL_TIME CHAR(4),
+ARRIVAL_DELAY SMALLINT,
+DIVERTED TINYINT,
+CANCELLED TINYINT,
+CANCELLATION_REASON CHAR(1),
+AIR_SYSTEM_DELAY TINYINT,
+SECURITY_DELAY TINYINT,
+AIRLINE_DELAY TINYINT,
+LATE_AIRCRAFT_DELAY TINYINT,
+WEATHER_DELAY TINYINT
+)
+COMMENT 'Flights Table'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+TBLPROPERTIES("skip.header.line.count"="1");
+	
+LOAD DATA INPATH '/flight_delays/input/hive/flights.csv' INTO TABLE flight_cancellations.flights;
+
+select airlines.IATA_CODE, airlines.AIRLINE, avg(flights.DEPARTURE_DELAY) avg_delay
+from flight_cancellations.airlines airlines
+join flight_cancellations.flights flights
+on airlines.IATA_CODE == flights.AIRLINE
+where flights.DIVERTED == 0 and flights.CANCELLED == 0
+group by airlines.IATA_CODE, airlines.AIRLINE
+order by avg_delay desc
+limit 5;
+
+DROP TABLE IF EXISTS flight_cancellations.top_airlines;
+
+create table flight_cancellations.top_airlines as
+select airlines.IATA_CODE, airlines.AIRLINE, avg(flights.DEPARTURE_DELAY) avg_delay
+from flight_cancellations.airlines airlines
+join flight_cancellations.flights flights
+on airlines.IATA_CODE == flights.AIRLINE
+where flights.DIVERTED == 0 and flights.CANCELLED == 0
+group by airlines.IATA_CODE, airlines.AIRLINE
+order by avg_delay desc
+limit 5;
+
+select * from flight_cancellations.top_airlines;
